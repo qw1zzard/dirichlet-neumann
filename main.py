@@ -1,8 +1,12 @@
-import sympy as sym
+'''Документация к модулю'''
+# from tkinter import ttk, Tk, Label
+from sympy import init_printing
 from sympy.plotting.plot import plot3d
 
 from handler import handler
 from solver import solver
+
+init_printing()
 
 
 def main() -> None:
@@ -19,9 +23,26 @@ def main() -> None:
             task = None
 
     condition = handler(task)
-    u_function = solver(task, *condition)
+    u = solver(task, *condition)
 
-    plot3d(u_function)
+
+    # root = Tk()
+    # root.title('Решение задачи Дирихле и Неймана')
+    # root.geometry('600x400')
+
+    # label = Label(text='Выберите тип задачи:')
+    # label.pack()
+
+
+    # btn = ttk.Button(text='Click')
+    # btn.pack()
+
+
+
+    plot3d(u)
+
+
+    # root.mainloop()
 
 
 if __name__ == '__main__':

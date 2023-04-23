@@ -1,8 +1,9 @@
-import sympy as sym
+'''Документация к модулю'''
+from sympy import sqrt, Expr, sympify
 
 
 def circle_input() -> tuple:
-    '''Обработка ввода про окружность'''
+    '''Обработка введённой окружности'''
 
     explicitly = None
     while explicitly is None:
@@ -46,11 +47,15 @@ def circle_input() -> tuple:
         c = float(c)
 
         center = [a, b]
-        radius = sym.sqrt(a**2 + b**2 - c)
+        radius = sqrt(a**2 + b**2 - c)
 
     return center, radius
 
-def function_input() -> None:
-    '''Обработка ввода про функцию'''
+def function_input() -> Expr:
+    '''Обработка введённой функции'''
 
-    return None
+    return sympify(input())
+
+
+if __name__ == '__main__':
+    print(circle_input())

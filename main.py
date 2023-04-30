@@ -1,119 +1,73 @@
-'''Документация к модулю'''
+'''There's a lot of spaghetti code. Sorry.'''
 
-import re
-from tkinter import *
-from tkinter import ttk
-from sympy import init_printing, Expr, symbols, solve, simplify
-from sympy import ln, sqrt, sin, cos
+# import re
+from tkinter import ttk, Tk, Label, StringVar
+from sympy import init_printing, simplify, symbols, acos, sqrt
 from sympy.plotting.plot import plot3d
+
+from stuff import circle_input, function_input, solver
+
 
 init_printing()
 
 
-def circle_input(circle: str) -> tuple:
-    '''Обработка строки с уравнением окружности'''
+RING = 'Ring'
+INTERIOR = 'Interior'
+EXTERIOR = 'Exterior'
 
-    circle = circle.replace(' ', '')
-    a = b = c = ''
-
-    i = 3 # x^2 пропускаем
-    while circle[i] != '*':
-        a += circle[i]
-        i += 1
-    a = float(a) / 2
-
-    i += 6 # *x+y^2 пропускаем
-    while circle[i] != '*':
-        b += circle[i]
-        i += 1
-    b = float(b) / 2
-
-    i += 2 # *y пропускаем
-    while circle[i] != '=':
-        c += circle[i]
-        i += 1
-    c = float(c)
-
-    x_0, y_0 = a, b
-    radius = sqrt(a**2 + b**2 - c)
-
-    return x_0, y_0, radius
-
-
-def function_input(x_0: float, y_0: float, fun_entr: str) -> Expr:
-    '''Обработка введённой функции'''
-
-    x, y, rho, phi = symbols('x, y, rho, phi')
-
-    function = simplify(fun_entr)
-    function = simplify(function.subs([(x, x_0 + rho * cos(phi)),
-                                       (y, y_0 + rho * sin(phi))]))
-
-    return function
-
-
-def solver(rad_1: float, fun_1: Expr,
-           rad_2=None, fun_2=None, inh=None) -> Expr:
-    '''Решение полученной задачи'''
-
-    u, rho, phi = symbols('u rho phi')
-    c1, c2, c3, c4, c5, c6 = symbols('c1 c2 c3 c4 c5 c6')
-
-    # Define the solution function
-    u_expr = c1*rho + c2*ln(rho) + c3*rho*cos(phi) + c4*rho*sin(phi) \
-        + c5*(1/rho)*sin(phi) + c6*(1/rho)*cos(phi)
-
-    # Substitute the radii
-    u_expr = u_expr.subs({rad_1: rho, rad_2: rho})
-
-    # Substitute the functions on the circles
-    if fun_1:
-        u_expr = u_expr.subs(u.subs(rho, rad_1), fun_1)
-    if fun_2:
-        u_expr = u_expr.subs(u.subs(rho, rad_2), fun_2)
-
-    # Substitute the inhomogeneity function
-    if inh:
-        u_expr = u_expr.subs(c1, inh)
-
-    # Solve for the coefficients
-    coeffs = solve(u_expr, [c1, c2, c3, c4, c5, c6])
-
-    return u_expr.subs(coeffs)
+EXPLICIT = 'Explicit'
+IMPLICIT = 'Implicit'
 
 
 def main() -> None:
     '''Build the GUI and select the problem'''
 
     def runner():
-        # implementation of the solver function
+        '''Running side functions with the task in mind'''
 
-        x_0, y_0 = map(float, cent_entr.get().split())
-
-        if task.get() == type_ring:
-            if expl.get() == expl_yes:
-                rad_1, rad_2 = map(float, rad_entr.get().split())
+        if task.get() == RING:
+            if expl.get() == EXPLICIT:
+                cent = cent_entr.get().replace(' ', '')
+                x_0, y_0 = map(float, cent.split(';'))
+                rad = rad_entr.get().replace(' ', '')
+                rad_1, rad_2 = map(float, rad.split(';'))
             else:
-                circ_1, circ_2 = circ_entr.get().split()
+                circ = circ_entr.get().replace(' ', '')
+                circ_1, circ_2 = circ.split(';')
                 x_0, y_0, rad_1 = map(float, circle_input(circ_1))
                 x_0, y_0, rad_2 = map(float, circle_input(circ_2))
 
-            fun_1, fun_2 = fun_entr.get().split()
-            fun_1 = function_input(x_0, y_0, fun_1)
-            fun_2 = function_input(x_0, y_0, fun_2)
+            inh = inh_entr.get().replace(' ', '')
+            # inh = function_input(x_0, y_0, inh)
 
-            u = solver(rad_1, fun_1, rad_2=rad_2,
-                       fun_2=fun_2, inh=inh_entr.get())
+            fun = fun_entr.get().replace(' ', '')
+            fun_1, fun_2 = fun.split(';')
+            fun_1 = function_input(x_0, y_0, fun_1, rad_1)
+            fun_2 = function_input(x_0, y_0, fun_2, rad_2)
+
+            u = solver(task.get(), rad_1, fun_1, rad_2=rad_2,
+                       fun_2=fun_2, inh=inh)
         else:
-            if expl.get() == expl_yes:
-                rad = float(rad_entr.get())
+            if expl.get() == EXPLICIT:
+                cent = cent_entr.get().replace(' ', '')
+                x_0, y_0 = map(float, cent.split(';'))
+                rad = float(rad_entr.get().replace(' ', ''))
             else:
-                circ = circ_entr.get()
+                circ = circ_entr.get().replace(' ', '')
                 x_0, y_0, rad = map(float, circle_input(circ))
 
-            fun = function_input(x_0, y_0, fun_entr.get())
+            inh = inh_entr.get().replace(' ', '')
+            # inh = function_input(x_0, y_0, inh)
 
-            u = solver(rad, fun, inh=inh_entr.get())
+            fun = function_input(x_0, y_0, fun_entr.get().replace(' ', ''), rad)
+
+            u = solver(task.get(), rad, fun, inh=inh)
+        
+        x, y, rho, phi = symbols('x y rho phi')
+        rho_new = sqrt((x - x_0)**2 + (y - y_0**2))
+        phi_new = acos((x - x_0) / rho_new)
+        u = simplify(u.subs((rho, rho_new),
+                            (phi, phi_new)))
 
         plot3d(u)
 
@@ -126,31 +80,24 @@ def main() -> None:
     task_lbl = Label(text='Problem type:')
     task_lbl.grid(row=0, column=1)
 
-    type_ring = 'Ring'
-    type_in = 'Interior'
-    type_out = 'Exterior'
+    task = StringVar(value=RING)
 
-    task = StringVar()
-
-    ring_rdbtn = ttk.Radiobutton(text=type_ring, value=type_ring, variable=task)
+    ring_rdbtn = ttk.Radiobutton(text=RING, value=RING, variable=task)
     ring_rdbtn.grid(row=1, column=0)
-    in_rdbtn = ttk.Radiobutton(text=type_in, value=type_in, variable=task)
+    in_rdbtn = ttk.Radiobutton(text=INTERIOR, value=INTERIOR, variable=task)
     in_rdbtn.grid(row=1, column=1)
-    out_rdbtn = ttk.Radiobutton(text=type_out, value=type_out, variable=task)
+    out_rdbtn = ttk.Radiobutton(text=EXTERIOR, value=EXTERIOR, variable=task)
     out_rdbtn.grid(row=1, column=2)
 
 
     expl_lbl = Label(text='Circle parameters are given:')
     expl_lbl.grid(row=2, column=1)
 
-    expl_yes = 'Explicit'
-    expl_no = 'Implicit'
+    expl = StringVar(value=EXPLICIT)
 
-    expl = StringVar()
-
-    expl_yes_rdbtn = ttk.Radiobutton(text=expl_yes, value=expl_yes, variable=expl)
+    expl_yes_rdbtn = ttk.Radiobutton(text=EXPLICIT, value=EXPLICIT, variable=expl)
     expl_yes_rdbtn.grid(row=3, column=0)
-    expl_no_rdbtn = ttk.Radiobutton(text=expl_no, value=expl_no, variable=expl)
+    expl_no_rdbtn = ttk.Radiobutton(text=IMPLICIT, value=IMPLICIT, variable=expl)
     expl_no_rdbtn.grid(row=3, column=1)
 
 

@@ -12,7 +12,7 @@ INTERIOR = 'Interior'
 
 def circle_input(circle: str) -> tuple:
     '''Calculation of center and radius from the string with the circle equation
-    like x^2 + a*x + y^2 + b*y + c = 0'''
+    like x^2 + a*x + y^2 + b*y + c = d'''
 
     pattern = r'^x\^2[+-]\d+(?:\.\d+)?\*?x\+y\^2[+-]?\d+(?:\.\d+)?\*?y[+-]?\d+(?:\.\d+)?=\d+(?:\.\d+)?$'
     pattern = compile(pattern)
@@ -47,6 +47,7 @@ def function_input(x_0: float, y_0: float, fun_entr: str, rad=None) -> Expr:
 
 
     max_deg = max(degree(function, sin(phi)), degree(function, cos(phi)))
+
     for n in range(max_deg, 1, -1):
         temp_sin = temp_cos = 0
         if n % 2 == 0:
@@ -79,15 +80,15 @@ def solver(task: str, rad_1: float, fun_1: Expr,
     '''Solving the problem according to all obtained conditions'''
 
     rho, phi = symbols('rho phi')
-    deg = int(max(degree(fun_1, rho), degree(fun_2, rho),
-                  degree(fun_1, rho**-1), degree(fun_2, rho**-1)))
+    max_deg = int(max(degree(fun_1, rho), degree(fun_2, rho),
+                      degree(fun_1, rho**-1), degree(fun_2, rho**-1)))
 
     if task == RING:
         c_00, c_01 = symbols('c_00 c_01')
         u = c_00*rho + c_01*ln(rho)
         c_arr = [c_00, c_01]
 
-        for i in range(1, deg+1):
+        for i in range(1, max_deg+1):
             c_0, c_1, c_2, c_3 = symbols(f'c_{i}0 c_{i}1 c_{i}2 c_{i}3')
             c_arr.extend([c_0, c_1, c_2, c_3])
 
@@ -100,15 +101,16 @@ def solver(task: str, rad_1: float, fun_1: Expr,
         eq_arr = [u_1.coeff(cos(phi), 0).coeff(sin(phi), 0),
                   u_2.coeff(cos(phi), 0).coeff(sin(phi), 0)]
 
-        for i in range(1, deg+1):
+        for i in range(1, max_deg+1):
             eq_arr.extend([u_1.coeff(cos(phi), i), u_1.coeff(sin(phi), i),
                            u_2.coeff(cos(phi), i), u_2.coeff(sin(phi), i)])
+
     elif task == INTERIOR:
         c_0 = symbols('c_00')
         u = c_0*rho
         c_arr = [c_0]
 
-        for i in range(1, deg+1):
+        for i in range(1, max_deg+1):
             c_0, c_1 = symbols(f'c_{i}0 c_{i}1')
             c_arr.extend([c_0, c_1])
 
@@ -118,14 +120,15 @@ def solver(task: str, rad_1: float, fun_1: Expr,
 
         eq_arr = [u_1.coeff(cos(phi), 0).coeff(sin(phi), 0)]
 
-        for i in range(1, deg+1):
+        for i in range(1, max_deg+1):
             eq_arr.extend([u_1.coeff(cos(phi), i), u_1.coeff(sin(phi), i)])
+
     else:
         c_0 = symbols('c_00')
         u = c_0*rho
         c_arr = [c_0]
 
-        for i in range(1, deg+1):
+        for i in range(1, max_deg+1):
             c_0, c_1 = symbols(f'c_{i}0 c_{i}1')
             c_arr.extend([c_0, c_1])
 
@@ -135,7 +138,7 @@ def solver(task: str, rad_1: float, fun_1: Expr,
 
         eq_arr = [u_1.coeff(cos(phi), 0).coeff(sin(phi), 0)]
 
-        for i in range(1, deg+1):
+        for i in range(1, max_deg+1):
             eq_arr.extend([u_1.coeff(cos(phi), i), u_1.coeff(sin(phi), i)])
 
 

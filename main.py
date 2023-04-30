@@ -61,7 +61,7 @@ def main() -> None:
             fun = function_input(x_0, y_0, fun_entr.get().replace(' ', ''), rad)
 
             u = solver(task.get(), rad, fun) # , inh=inh)
-        
+
         x, y, rho, phi = symbols('x y rho phi')
         rho_new = sqrt((x - x_0)**2 + (y - y_0**2))
         phi_new = acos((x - x_0) / rho_new)

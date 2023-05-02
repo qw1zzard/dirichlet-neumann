@@ -2,19 +2,28 @@
 
 from math import comb
 from re import compile, match
-from sympy import Expr, symbols, simplify, degree, solve
-from sympy import ln, sqrt, sin, cos
+from sympy import init_printing, Expr, symbols, simplify, degree, solve
+from sympy import acos, sqrt, ln, sin, cos
+# from sympy.plotting.plot import plot3d
+
+
+init_printing()
 
 
 RING = 'Ring'
-INTERIOR = 'Interior'
+INT = 'Interior'
+EXT = 'Exterior'
+
+EXPL = 'Explicit'
+IMPL = 'Implicit'
 
 
 def circle_input(circle: str) -> tuple:
     '''Calculation of center and radius from the string with the circle equation
     like x^2 + a*x + y^2 + b*y + c = d'''
 
-    pattern = r'^x\^2[+-]\d+(?:\.\d+)?\*?x\+y\^2[+-]?\d+(?:\.\d+)?\*?y[+-]?\d+(?:\.\d+)?=\d+(?:\.\d+)?$'
+    pattern = r'^x\^2[+-]\d+(?:\.\d+)?\*?x\+y\^2[+-]?\d' \
+              + r'+(?:\.\d+)?\*?y[+-]?\d+(?:\.\d+)?=\d+(?:\.\d+)?$'
     pattern = compile(pattern)
 
     match_flg = match(pattern, circle)
@@ -75,8 +84,54 @@ def function_input(x_0: float, y_0: float, fun_entr: str, rad=None) -> Expr:
     return function
 
 
-def solver(task: str, rad_1: float, fun_1: Expr,
-           rad_2=None, fun_2=None, inh=None) -> Expr:
+def runner(task: str, expl: str, cent, rad, circ, fun, inh) -> None:
+    '''Running side functions with the task in mind'''
+
+    cent = cent.get().replace(' ', '')
+    rad = rad.get().replace(' ', '')
+    circ = circ.get().replace(' ', '')
+    fun = fun.get().replace(' ', '')
+    inh = inh.get().replace(' ', '')
+
+    if task == RING:
+        if expl == EXPL:
+            x_0, y_0 = map(float, cent.split(';'))
+            rad_1, rad_2 = map(float, rad.split(';'))
+        else:
+            circ_1, circ_2 = circ.split(';')
+            x_0, y_0, rad_1 = map(float, circle_input(circ_1))
+            x_0, y_0, rad_2 = map(float, circle_input(circ_2))
+
+        fun_1, fun_2 = fun.split(';')
+        fun_1 = function_input(x_0, y_0, fun_1, rad_1)
+        fun_2 = function_input(x_0, y_0, fun_2, rad_2)
+        inh_ex = function_input(x_0, y_0, inh)
+
+        u = solver(task, rad_1, fun_1, inh_ex,
+                   rad_2=rad_2, fun_2=fun_2)
+    else:
+        if expl == EXPL:
+            x_0, y_0 = map(float, cent.split(';'))
+            rad_ex = float(rad.replace(' ', ''))
+        else:
+            x_0, y_0, rad_ex = map(float, circle_input(circ))
+
+        fun_ex = function_input(x_0, y_0, fun, rad)
+        inh_ex = function_input(x_0, y_0, inh)
+
+        u = solver(task, rad_ex, fun_ex, inh_ex)
+
+    x, y, rho, phi = symbols('x y rho phi')
+    rho_new = sqrt((x - x_0)**2 + (y - y_0**2))
+    phi_new = acos((x - x_0) / rho_new)
+
+    u = simplify(u.subs((rho, rho_new), (phi, phi_new)))
+
+    # plot3d(u)
+
+
+def solver(task: str, rad_1: float, fun_1: Expr, inh,
+           rad_2=None, fun_2=None) -> Expr:
     '''Solving the problem according to all obtained conditions'''
 
     rho, phi = symbols('rho phi')
@@ -105,7 +160,7 @@ def solver(task: str, rad_1: float, fun_1: Expr,
             eq_arr.extend([u_1.coeff(cos(phi), i), u_1.coeff(sin(phi), i),
                            u_2.coeff(cos(phi), i), u_2.coeff(sin(phi), i)])
 
-    elif task == INTERIOR:
+    elif task == INT:
         c_0 = symbols('c_00')
         u = c_0*rho
         c_arr = [c_0]

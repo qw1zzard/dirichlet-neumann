@@ -130,4 +130,5 @@ dmypy.json
 
 # Other
 .vscode
-lab.ipynb
+*.ipynb
+*.txt

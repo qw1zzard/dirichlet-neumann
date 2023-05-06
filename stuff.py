@@ -2,12 +2,8 @@
 
 from math import comb
 from re import compile, match
-from sympy import init_printing, Expr, symbols, simplify, degree, solve
-from sympy import acos, sqrt, ln, sin, cos
-# from sympy.plotting.plot import plot3d
-
-
-init_printing()
+from sympy import Expr, Float, symbols, simplify, degree, solve
+from sympy import acos, sqrt, ln, sin, cos, preorder_traversal
 
 
 RING = 'Ring'
@@ -45,7 +41,7 @@ def circle_input(circle: str) -> tuple:
     return x_0, y_0, radius
 
 
-def function_input(x_0: float, y_0: float, fun_entr: str, rad=None) -> Expr:
+def function_input(x_0: float, y_0: float, fun_entr: str) -> Expr:
     '''Simplifying a function obtained in a string'''
 
     x, y, rho, phi = symbols('x, y, rho, phi')
@@ -55,7 +51,8 @@ def function_input(x_0: float, y_0: float, fun_entr: str, rad=None) -> Expr:
                                        (y, y_0 + rho * sin(phi))]))
 
 
-    max_deg = max(degree(function, sin(phi)), degree(function, cos(phi)))
+    max_deg = int(max(0, degree(function, sin(phi)),
+                      degree(function, cos(phi))))
 
     for n in range(max_deg, 1, -1):
         temp_sin = temp_cos = 0
@@ -77,21 +74,91 @@ def function_input(x_0: float, y_0: float, fun_entr: str, rad=None) -> Expr:
         function = function.subs(sin(phi)**n, temp_sin)
         function = function.subs(cos(phi)**n, temp_cos)
 
-
-    if rad is not None:
-        function = simplify(function.subs(rho, rad))
-
     return function
 
 
-def runner(task: str, expl: str, cent, rad, circ, fun, inh) -> None:
-    '''Running side functions with the task in mind'''
+def solver(task: str, rad_1: float, fun_1: Expr, inh: Expr,
+           rad_2=0.0, fun_2=Expr()) -> Expr:
+    '''Solving the problem according to all obtained conditions'''
 
-    cent = cent.get().replace(' ', '')
-    rad = rad.get().replace(' ', '')
-    circ = circ.get().replace(' ', '')
-    fun = fun.get().replace(' ', '')
-    inh = inh.get().replace(' ', '')
+    rho, phi, c_0, c_ln  = symbols('rho phi c_0 c_ln')
+    u = c_0
+    c_arr = [c_0]
+    if task == RING:
+        u += c_ln * ln(rho)
+        c_arr.append(c_ln)
+
+    cos_args, sin_args = set(), set()
+    for expr in preorder_traversal(fun_1 + fun_2):
+        if isinstance(expr, cos):
+            cos_args.add(1)
+            if expr.args[0].args:
+                cos_args.add(expr.args[0].args[0])
+
+        elif isinstance(expr, sin):
+            sin_args.add(1)
+            if expr.args[0].args:
+                sin_args.add(expr.args[0].args[0])
+
+    for i in cos_args:
+        c_c0, c_c1 = symbols(f'c_c0_{i} c_c1_{i}')
+        if task == RING:
+            c_arr.extend([c_c0,  c_c1])
+            u += c_c0*(rho**i) * cos(i*phi) \
+                + c_c1*(rho**(-i)) * cos(i*phi)
+
+        elif task == INT:
+            c_arr.extend([c_c0])
+            u += c_c0*(rho**i) * cos(i*phi)
+
+        else:
+            c_arr.extend([c_c1])
+            u += c_c1*(rho**(-i)) * cos(i*phi)
+
+    for i in sin_args:
+        c_s0, c_s1 = symbols(f'c_s0_{i} c_s1_{i}')
+        if task == RING:
+            c_arr.extend([c_s0, c_s1])
+            u += c_s0*(rho**i) * sin(i*phi) \
+                + c_s1*(rho**(-i)) * sin(i*phi)
+
+        elif task == INT:
+            c_arr.extend([c_s0])
+            u += c_s0*(rho**i) * sin(i*phi)
+
+        else:
+            c_arr.extend([c_s1])
+            u += c_s1*(rho**(-i)) * sin(i*phi)
+
+    u_1 = simplify(u.subs(rho, rad_1) - fun_1.subs(rho, rad_1))
+    if task == RING:
+        u_2 = simplify(u.subs(rho, rad_2) - fun_2.subs(rho, rad_2))
+
+    eq_arr = []
+    for i in cos_args:
+        eq_arr.extend([u_1.coeff(cos(i*phi), 0).coeff(sin(i*phi), 0),
+                        u_1.coeff(cos(i*phi), i)])
+        if task == RING:
+            eq_arr.extend([u_2.coeff(cos(i*phi), 0).coeff(sin(i*phi), 0),
+                           u_2.coeff(cos(i*phi), i)])
+
+    for i in sin_args:
+        eq_arr.extend([u_1.coeff(cos(i*phi), 0).coeff(sin(i*phi), 0),
+                        u_1.coeff(sin(i*phi), i)])
+        if task == RING:
+            eq_arr.extend([u_2.coeff(cos(i*phi), 0).coeff(sin(i*phi), 0),
+                           u_2.coeff(sin(i*phi), i)])
+
+    eq_arr = set(eq_arr)
+    c_sol = solve(eq_arr, c_arr)
+    u = simplify(u.subs(c_sol))
+
+    return u
+
+
+def runner(task: str, expl: str, cent: str, rad: str,
+           circ: str, fun: str, inh: str) -> tuple:
+    '''Running side functions with the task in mind'''
 
     if task == RING:
         if expl == EXPL:
@@ -103,12 +170,12 @@ def runner(task: str, expl: str, cent, rad, circ, fun, inh) -> None:
             x_0, y_0, rad_2 = map(float, circle_input(circ_2))
 
         fun_1, fun_2 = fun.split(';')
-        fun_1 = function_input(x_0, y_0, fun_1, rad_1)
-        fun_2 = function_input(x_0, y_0, fun_2, rad_2)
-        inh_ex = function_input(x_0, y_0, inh)
+        fun_1 = function_input(x_0, y_0, fun_1)
+        fun_2 = function_input(x_0, y_0, fun_2)
+        inh_x = function_input(x_0, y_0, inh)
 
-        u = solver(task, rad_1, fun_1, inh_ex,
-                   rad_2=rad_2, fun_2=fun_2)
+        u_rp = solver(task, rad_1, fun_1, inh_x,
+                      rad_2=rad_2, fun_2=fun_2)
     else:
         if expl == EXPL:
             x_0, y_0 = map(float, cent.split(';'))
@@ -116,87 +183,24 @@ def runner(task: str, expl: str, cent, rad, circ, fun, inh) -> None:
         else:
             x_0, y_0, rad_ex = map(float, circle_input(circ))
 
-        fun_ex = function_input(x_0, y_0, fun, rad)
-        inh_ex = function_input(x_0, y_0, inh)
+        fun_x = function_input(x_0, y_0, fun)
+        inh_x = function_input(x_0, y_0, inh)
 
-        u = solver(task, rad_ex, fun_ex, inh_ex)
+        u_rp = solver(task, rad_ex, fun_x, inh_x)
 
     x, y, rho, phi = symbols('x y rho phi')
     rho_new = sqrt((x - x_0)**2 + (y - y_0**2))
     phi_new = acos((x - x_0) / rho_new)
 
-    u = simplify(u.subs((rho, rho_new), (phi, phi_new)))
-
-    # plot3d(u)
+    u_xy = simplify(u_rp.subs([(rho, rho_new), (phi, phi_new)]))
 
 
-def solver(task: str, rad_1: float, fun_1: Expr, inh,
-           rad_2=None, fun_2=None) -> Expr:
-    '''Solving the problem according to all obtained conditions'''
+    for arg in preorder_traversal(u_rp):
+        if isinstance(arg, Float):
+            u_rp = u_rp.subs(arg, round(arg, 4))
 
-    rho, phi = symbols('rho phi')
-    max_deg = int(max(degree(fun_1, rho), degree(fun_2, rho),
-                      degree(fun_1, rho**-1), degree(fun_2, rho**-1)))
+    for arg in preorder_traversal(u_xy):
+        if isinstance(arg, Float):
+            u_xy = u_xy.subs(arg, round(arg, 4))
 
-    if task == RING:
-        c_00, c_01 = symbols('c_00 c_01')
-        u = c_00*rho + c_01*ln(rho)
-        c_arr = [c_00, c_01]
-
-        for i in range(1, max_deg+1):
-            c_0, c_1, c_2, c_3 = symbols(f'c_{i}0 c_{i}1 c_{i}2 c_{i}3')
-            c_arr.extend([c_0, c_1, c_2, c_3])
-
-            u += c_0*(rho**i) * cos(phi) + c_1*(rho**i) * sin(phi) \
-                 + c_2*(rho**(-i)) * cos(phi) + c_3*(rho**(-i)) * sin(phi)
-
-        u_1 = simplify(u.subs(rho, rad_1) - fun_1)
-        u_2 = simplify(u.subs(rho, rad_2) - fun_2)
-
-        eq_arr = [u_1.coeff(cos(phi), 0).coeff(sin(phi), 0),
-                  u_2.coeff(cos(phi), 0).coeff(sin(phi), 0)]
-
-        for i in range(1, max_deg+1):
-            eq_arr.extend([u_1.coeff(cos(phi), i), u_1.coeff(sin(phi), i),
-                           u_2.coeff(cos(phi), i), u_2.coeff(sin(phi), i)])
-
-    elif task == INT:
-        c_0 = symbols('c_00')
-        u = c_0*rho
-        c_arr = [c_0]
-
-        for i in range(1, max_deg+1):
-            c_0, c_1 = symbols(f'c_{i}0 c_{i}1')
-            c_arr.extend([c_0, c_1])
-
-            u += c_0*(rho**i) * cos(phi) + c_1*(rho**i) * sin(phi)
-
-        u_1 = simplify(u.subs(rho, rad_1) - fun_1)
-
-        eq_arr = [u_1.coeff(cos(phi), 0).coeff(sin(phi), 0)]
-
-        for i in range(1, max_deg+1):
-            eq_arr.extend([u_1.coeff(cos(phi), i), u_1.coeff(sin(phi), i)])
-
-    else:
-        c_0 = symbols('c_00')
-        u = c_0*rho
-        c_arr = [c_0]
-
-        for i in range(1, max_deg+1):
-            c_0, c_1 = symbols(f'c_{i}0 c_{i}1')
-            c_arr.extend([c_0, c_1])
-
-            u += c_0*(rho**(-i)) * cos(phi) + c_1*(rho**(-i)) * sin(phi)
-
-        u_1 = simplify(u.subs(rho, rad_1) - fun_1)
-
-        eq_arr = [u_1.coeff(cos(phi), 0).coeff(sin(phi), 0)]
-
-        for i in range(1, max_deg+1):
-            eq_arr.extend([u_1.coeff(cos(phi), i), u_1.coeff(sin(phi), i)])
-
-
-    u = simplify(u.subs(c_arr, solve(eq_arr, c_arr)))
-
-    return u
+    return u_rp, u_xy

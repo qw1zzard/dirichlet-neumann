@@ -4,8 +4,12 @@ from functools import partial
 from tkinter import Tk, Label, StringVar
 from tkinter.ttk import Radiobutton, Entry, Button
 from sympy.plotting.plot import plot3d
+from sympy import init_printing
 
 from stuff import runner
+
+
+init_printing()
 
 
 RING = 'Ring'
@@ -15,7 +19,7 @@ EXT = 'Exterior'
 EXPL = 'Explicit'
 IMPL = 'Implicit'
 
-RELY = 0.0526
+RELY = 1/19.0
 
 
 def informer(info: Label, task: StringVar, expl: StringVar, cent: Entry,
@@ -89,21 +93,21 @@ def main() -> None:
     Label(text='Circle equation:') \
         .place(relx=.5, rely=10*RELY, anchor='center')
     circ = Entry()
-    circ.place(relx=.5, rely=11*RELY, anchor='center', relwidth=.33)
+    circ.place(relx=.5, rely=11*RELY, anchor='center', relwidth=.4)
     circ.insert(0, 'x^2+a*x+y^2+b*y=c ; x^2+a*x+y^2+b*y=c')
 
 
     Label(text='Function on boundary:') \
         .place(relx=.5, rely=12*RELY, anchor='center')
     fun = Entry()
-    fun.place(relx=.5, rely=13*RELY, anchor='center', relwidth=.33)
+    fun.place(relx=.5, rely=13*RELY, anchor='center', relwidth=.4)
     fun.insert(0, 'x^2 ; 1/32*x^2+1/8')
 
 
     Label(text='Non-homogeneous:') \
         .place(relx=.5, rely=14*RELY, anchor='center')
     inh = Entry()
-    inh.place(relx=.5, rely=15*RELY, anchor='center', relwidth=.33)
+    inh.place(relx=.5, rely=15*RELY, anchor='center', relwidth=.4)
     inh.insert(0, '0')
 
 

@@ -5,7 +5,7 @@ from tkinter import Label, StringVar, Tk
 from tkinter.ttk import Button, Entry, Radiobutton
 
 from sympy import init_printing
-from sympy.plotting.plot import plot3d
+# from sympy.plotting.plot import plot3d
 
 from stuff import runner
 
@@ -18,12 +18,12 @@ EXT = 'Exterior'
 EXPL = 'Explicit'
 IMPL = 'Implicit'
 
-RELY = 1/21
+RELY = 1/20
 
 
 def informer(info: Label, task: StringVar, expl: StringVar, cent: Entry,
              rad: Entry, circ: Entry, fun: Entry, inh: Entry) -> None:
-    '''Collect the information, transfer it to the solver and build a graph'''
+    '''Gather information, pass it to the solver, and construct a graph'''
 
     task_s = task.get()
     expl_s = expl.get()
@@ -33,19 +33,19 @@ def informer(info: Label, task: StringVar, expl: StringVar, cent: Entry,
     fun_s = fun.get().replace(' ', '')
     inh_s = inh.get().replace(' ', '')
 
-    u_rp, u_xy = runner(task_s, expl_s, cent_s, rad_s, circ_s, fun_s, inh_s)
+    u_dir, u_neu = runner(task_s, expl_s, cent_s, rad_s, circ_s, fun_s, inh_s)
 
-    u_rp_s = 'u(rho, phi) = ' + str(u_rp)
-    Label(text=u_rp_s).place(relx=.5, rely=19*RELY, anchor='center')
+    u_dir_s = 'Дирихле: u(rho, phi) = ' + str(u_dir)
+    Label(text=u_dir_s).place(relx=.5, rely=17*RELY, anchor='center')
 
-    u_xy_s = 'u(x, y) = ' + str(u_xy)
-    Label(text=u_xy_s).place(relx=.5, rely=20*RELY, anchor='center')
+    u_neu_s = 'Нейман: u(x, y) = ' + str(u_neu)
+    Label(text=u_neu_s).place(relx=.5, rely=18*RELY, anchor='center')
 
-    plot3d(u_xy)
+    # plot3d(u_xy)
 
 
 def main() -> None:
-    '''Build the GUI and select the problem'''
+    '''Build a GUI and select a problem'''
 
     root = Tk()
     root.title('Solution of the Dirichlet-Neumann problem')
@@ -100,8 +100,6 @@ def main() -> None:
     inh = Entry()
     inh.place(relx=.5, rely=15*RELY, anchor='center', relwidth=.2)
     inh.insert(0, '0')
-
-    
 
     solve_btn = Button(text='Solve problem',
                        command=partial(informer, info, task, expl, cent,
